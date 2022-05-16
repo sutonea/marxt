@@ -45,8 +45,8 @@ impl Application for MarxtMain {
             "Input pathname...",
             &(self.pathname),
             Message::ChangePathname
-        );
-        let mut col = Column::new().push(text_input);
+        ).padding(5);
+        let mut col = Column::new().padding(10).push(text_input);
         col = col.push(Text::new(self.text.clone()));
         col.into()
     }
