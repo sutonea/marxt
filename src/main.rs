@@ -105,7 +105,7 @@ impl Application for MarxtMain {
                 match file_type {
                     MartxFile::Dir => {
                         self.text = "".to_string();
-                        let read_dir = std::fs::read_dir(cloned_pathname);
+                        let read_dir = fs::read_dir(cloned_pathname);
                         match read_dir {
                             Ok(read_dir) => {
                                 for entry in read_dir.into_iter() {
