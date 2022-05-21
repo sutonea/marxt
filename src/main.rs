@@ -2,6 +2,8 @@ use iced::{Application, Column, Command, executor, Settings, Text, text_input, T
 use std::io::Read;
 use std::path::Path;
 use std::fs::OpenOptions;
+use std::fs;
+use std::io::{BufWriter, Write};
 
 fn main() {
     MarxtMain::run(Settings::default());
@@ -17,6 +19,49 @@ struct MarxtMain {
 #[derive(Debug, Clone)]
 enum Message {
     ChangePathname(String)
+}
+
+#[derive(Debug, Clone)]
+enum MartxFile {
+    Dir,
+    File,
+    Unprocessable,
+}
+
+impl MarxtMain {
+
+    /// ログファイルの場所
+    fn log_path(&self) -> &str {
+        "/tmp/marxt.log"
+    }
+
+    /// ログファイルに書き込む
+    fn write_to_log(&self, log_path: &str, message: String) {
+        let file = OpenOptions::new().create(true).append(true).open(log_path).unwrap();
+        let mut f = BufWriter::new(file);
+        f.write(message.as_bytes());
+    }
+
+    /// 指定したパスのファイルタイプを返す
+    /// ファイルが存在しない場合 MartxFile::Unprocessable を返す
+    fn file_type(&self, file_path: &str) -> MartxFile {
+        let result_metadata = std::fs::metadata(file_path);
+        match result_metadata {
+            Err(err) => {
+                //self.write_to_log(self.log_path(), err.to_string());
+                MartxFile::Unprocessable
+            },
+            Ok(metadata) => {
+                if metadata.is_file() {
+                    return MartxFile::File;
+                }
+                if metadata.is_dir() {
+                    return MartxFile::Dir;
+                }
+                MartxFile::Unprocessable
+            }
+        }
+    }
 }
 
 impl Application for MarxtMain {
@@ -56,19 +101,50 @@ impl Application for MarxtMain {
             Message::ChangePathname(pathname) => {
                 self.pathname = pathname.clone();
                 let cloned_pathname = pathname.clone();
-                let open_result = OpenOptions::new().read(true).open(Path::new(cloned_pathname.as_str()));
-                match open_result {
-                    Ok(mut file) => {
+                let file_type = self.file_type(&cloned_pathname);
+                match file_type {
+                    MartxFile::Dir => {
                         self.text = "".to_string();
-                        match file.read_to_string(&mut self.text) {
-                            Ok(_) => {}
+                        let read_dir = std::fs::read_dir(cloned_pathname);
+                        match read_dir {
+                            Ok(read_dir) => {
+                                for entry in read_dir.into_iter() {
+                                    match entry {
+                                        Ok(entry) => {
+                                            self.text += &*format!("{:?}\n", entry.path());
+                                        }
+                                        Err(_) => {}
+                                    }
+                                }
+
+                            }
+                            Err(_) => {
+
+                            }
+                        }
+                    }
+                    MartxFile::File => {
+                        self.text = "".to_string();
+
+                        let open_result = OpenOptions::new().read(true).open(Path::new(cloned_pathname.as_str()));
+                        match open_result {
+                            Ok(mut file) => {
+                                match file.read_to_string(&mut self.text) {
+                                    Ok(res) => {
+                                        println!("DEBUG {}", res);
+                                    }
+                                    Err(err) => {
+                                        self.text = format!("Error: {}", err);
+                                    }
+                                }
+
+                            }
                             Err(err) => {
                                 self.text = format!("Error: {}", err);
                             }
                         }
                     }
-                    Err(err) => {
-                        self.text = format!("Error: {}", err);
+                    MartxFile::Unprocessable => {
                     }
                 }
             }
