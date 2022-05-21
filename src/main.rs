@@ -45,7 +45,7 @@ impl MarxtMain {
     /// 指定したパスのファイルタイプを返す
     /// ファイルが存在しない場合 MartxFile::Unprocessable を返す
     fn file_type(&self, file_path: &str) -> MartxFile {
-        let result_metadata = std::fs::metadata(file_path);
+        let result_metadata = fs::metadata(file_path);
         match result_metadata {
             Err(err) => {
                 //self.write_to_log(self.log_path(), err.to_string());
