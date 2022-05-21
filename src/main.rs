@@ -13,7 +13,7 @@ fn main() {
 struct MarxtMain {
     state_input_pathname: text_input::State,
     pathname: String,
-    text: String,
+    list_text: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -74,7 +74,7 @@ impl Application for MarxtMain {
             MarxtMain {
                 state_input_pathname: text_input::State::default(),
                 pathname: "".to_string(),
-                text: "".to_string(),
+                list_text: vec![]
             },
             Command::none(),
         )
@@ -92,7 +92,9 @@ impl Application for MarxtMain {
             Message::ChangePathname
         ).padding(5);
         let mut col = Column::new().padding(10).push(text_input);
-        col = col.push(Text::new(self.text.clone()));
+        for text in self.list_text.iter() {
+            col = col.push(Text::new(text));
+        }
         col.into()
     }
 
@@ -104,14 +106,14 @@ impl Application for MarxtMain {
                 let file_type = self.file_type(&cloned_pathname);
                 match file_type {
                     MartxFile::Dir => {
-                        self.text = "".to_string();
                         let read_dir = fs::read_dir(cloned_pathname);
                         match read_dir {
                             Ok(read_dir) => {
+                                self.list_text = vec![];
                                 for entry in read_dir.into_iter() {
                                     match entry {
                                         Ok(entry) => {
-                                            self.text += &*format!("{:?}\n", entry.path());
+                                            self.list_text.push(entry.path().to_str().unwrap().to_string());
                                         }
                                         Err(err) => {
                                             self.write_to_log(self.log_path(), "Error : DirEntry".to_string());
@@ -127,17 +129,17 @@ impl Application for MarxtMain {
                         }
                     }
                     MartxFile::File => {
-                        self.text = "".to_string();
 
                         let open_result = OpenOptions::new().read(true).open(Path::new(cloned_pathname.as_str()));
                         match open_result {
                             Ok(mut file) => {
                                 let reader = BufReader::new(file);
                                 let lines = reader.lines();
+                                self.list_text = vec![];
                                 for line in lines.into_iter() {
                                     match line {
                                         Ok(line) => {
-                                            self.text.push_str(line.clone().as_str());
+                                            self.list_text.push(line);
                                         }
                                         Err(err) => {
                                             self.write_to_log(self.log_path(), "Error : read_line".to_string());
