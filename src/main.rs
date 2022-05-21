@@ -48,7 +48,7 @@ impl MarxtMain {
         let result_metadata = fs::metadata(file_path);
         match result_metadata {
             Err(err) => {
-                //self.write_to_log(self.log_path(), err.to_string());
+                self.write_to_log(self.log_path(), err.to_string());
                 MartxFile::Unprocessable
             },
             Ok(metadata) => {
