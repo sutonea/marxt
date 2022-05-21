@@ -113,13 +113,16 @@ impl Application for MarxtMain {
                                         Ok(entry) => {
                                             self.text += &*format!("{:?}\n", entry.path());
                                         }
-                                        Err(_) => {}
+                                        Err(err) => {
+                                            self.write_to_log(self.log_path(), "Error : DirEntry".to_string());
+                                            self.write_to_log(self.log_path(), err.to_string());
+                                        }
                                     }
                                 }
-
                             }
-                            Err(_) => {
-
+                            Err(err) => {
+                                self.write_to_log(self.log_path(), "Error : read_dir".to_string());
+                                self.write_to_log(self.log_path(), err.to_string());
                             }
                         }
                     }
@@ -140,7 +143,8 @@ impl Application for MarxtMain {
 
                             }
                             Err(err) => {
-                                self.text = format!("Error: {}", err);
+                                self.write_to_log(self.log_path(), "Error : read_file".to_string());
+                                self.write_to_log(self.log_path(), err.to_string());
                             }
                         }
                     }
