@@ -1,12 +1,24 @@
-use iced::{Application, Column, Command, executor, Settings, Text, text_input, TextInput};
-use std::io::{BufRead, BufReader, Read};
+use std::collections::HashMap;
+use iced::{Application, Column, Command, executor, Padding, Settings, Text, text_input, TextInput};
 use std::path::Path;
 use std::fs::OpenOptions;
 use std::fs;
-use std::io::{BufWriter, Write};
+use std::io::{BufRead, BufReader, BufWriter, Write};
+use maplit::hashmap;
 
-fn main() {
-    MarxtMain::run(Settings::default());
+const FONT_NORMAL: u16 = 20;
+const FONT_H5: u16     = 22;
+const FONT_H4: u16     = 24;
+const FONT_H3: u16     = 26;
+const FONT_H2: u16     = 28;
+const FONT_H1: u16     = 30;
+
+const PADDING_NORMAL: Padding = Padding::new(5);
+
+pub fn main() -> iced::Result {
+    MarxtMain::run(
+        Settings::default()
+    )
 }
 
 
@@ -14,6 +26,7 @@ struct MarxtMain {
     state_input_pathname: text_input::State,
     pathname: String,
     list_text: Vec<String>,
+    markup_rules: MarkupRules,
 }
 
 #[derive(Debug, Clone)]
@@ -28,6 +41,56 @@ enum MartxFile {
     Unprocessable,
 }
 
+struct MarkupRules {
+    rules: HashMap<String, u16>
+}
+
+impl MarkupRules {
+    fn new(rules: HashMap<String, u16>) -> MarkupRules {
+        MarkupRules {
+            rules
+        }
+    }
+
+    fn parse(&self, line: String) -> Parsed {
+        let first_word = line.split_whitespace().nth(0);
+        return match first_word {
+            None => {
+                return Parsed::new(line, FONT_NORMAL)
+            }
+            Some(first_word) => {
+                let matched_size = self.rules.get(first_word);
+                match matched_size {
+                    None => {
+                        Parsed::new(line, FONT_NORMAL)
+                    }
+                    Some(got_size) => {
+                        Parsed::new(
+                            line.replace(first_word, ""),
+                            *got_size
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct Parsed {
+    line: String,
+    size: u16,
+}
+
+impl Parsed {
+    fn new(line: String, size: u16) -> Parsed {
+        Parsed {
+            line, size
+        }
+    }
+}
+
+
+
 impl MarxtMain {
 
     /// ログファイルの場所
@@ -39,7 +102,7 @@ impl MarxtMain {
     fn write_to_log(&self, log_path: &str, message: String) {
         let file = OpenOptions::new().create(true).append(true).open(log_path).unwrap();
         let mut f = BufWriter::new(file);
-        f.write(message.as_bytes());
+        f.write(message.as_bytes()).unwrap();
     }
 
     /// 指定したパスのファイルタイプを返す
@@ -74,7 +137,19 @@ impl Application for MarxtMain {
             MarxtMain {
                 state_input_pathname: text_input::State::default(),
                 pathname: "".to_string(),
-                list_text: vec![]
+                list_text: vec![],
+                markup_rules: MarkupRules::new(
+
+                    hashmap!{
+                        "#".to_owned() => FONT_H1,
+                        "##".to_owned() => FONT_H2,
+                        "###".to_owned() => FONT_H3,
+                        "####".to_owned() => FONT_H4,
+                        "#####".to_owned() => FONT_H5,
+                    }
+
+
+                )
             },
             Command::none(),
         )
@@ -85,15 +160,17 @@ impl Application for MarxtMain {
     }
 
     fn view(&mut self) -> iced::Element<'_, Message> {
+        self.write_to_log(self.log_path(), "view".to_string());
         let text_input = TextInput::new(
             &mut self.state_input_pathname,
             "Input pathname...",
             &(self.pathname),
             Message::ChangePathname
-        ).padding(5);
-        let mut col = Column::new().padding(10).push(text_input);
+        ).padding(PADDING_NORMAL);
+        let mut col = Column::new().padding(PADDING_NORMAL).push(text_input);
         for text in self.list_text.iter() {
-            col = col.push(Text::new(text));
+            let parsed = self.markup_rules.parse(text.to_string());
+            col = col.push(Text::new(parsed.line).size(parsed.size));
         }
         col.into()
     }
@@ -132,7 +209,7 @@ impl Application for MarxtMain {
 
                         let open_result = OpenOptions::new().read(true).open(Path::new(cloned_pathname.as_str()));
                         match open_result {
-                            Ok(mut file) => {
+                            Ok(file) => {
                                 let reader = BufReader::new(file);
                                 let lines = reader.lines();
                                 self.list_text = vec![];

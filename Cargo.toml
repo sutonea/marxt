@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 iced = "0.4"
+maplit = "1.0.2"
