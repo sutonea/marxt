@@ -1,5 +1,5 @@
 use iced::{Application, Column, Command, executor, Settings, Text, text_input, TextInput};
-use std::io::Read;
+use std::io::{BufRead, BufReader, Read};
 use std::path::Path;
 use std::fs::OpenOptions;
 use std::fs;
@@ -132,15 +132,19 @@ impl Application for MarxtMain {
                         let open_result = OpenOptions::new().read(true).open(Path::new(cloned_pathname.as_str()));
                         match open_result {
                             Ok(mut file) => {
-                                match file.read_to_string(&mut self.text) {
-                                    Ok(res) => {
-                                        println!("DEBUG {}", res);
+                                let reader = BufReader::new(file);
+                                let lines = reader.lines();
+                                for line in lines.into_iter() {
+                                    match line {
+                                        Ok(line) => {
+                                            self.text.push_str(line.clone().as_str());
+                                        }
+                                        Err(err) => {
+                                            self.write_to_log(self.log_path(), "Error : read_line".to_string());
+                                            self.write_to_log(self.log_path(), err.to_string());
+                                        }
                                     }
-                                    Err(err) => {
-                                        self.text = format!("Error: {}", err);
-                                    }
-                                }
-
+                                };
                             }
                             Err(err) => {
                                 self.write_to_log(self.log_path(), "Error : read_file".to_string());
