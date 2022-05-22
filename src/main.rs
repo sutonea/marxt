@@ -1,5 +1,4 @@
-//! # Marxt
-//! Markdown viewer
+// Marxt : Markdown viewer
 
 use std::collections::HashMap;
 use iced::{Application, Column, Command, executor, Padding, Settings, Text, text_input, TextInput};
@@ -47,9 +46,9 @@ enum Message {
     ChangePathname(String)
 }
 
+/// Marxt original file category
 #[derive(Debug, Clone)]
 enum MartxFile {
-    //! Marxt original file category
 
     /// Directory
     Dir,
@@ -62,8 +61,8 @@ enum MartxFile {
 }
 
 
+/// Rules for markup text.
 struct MarkupRules {
-    //! Rules for markup text.
 
     /// Include prefix and font size.
     rules: HashMap<String, u16>,
