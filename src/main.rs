@@ -7,11 +7,11 @@ use std::io::{BufRead, BufReader, BufWriter, Write};
 use maplit::hashmap;
 
 const FONT_NORMAL: u16 = 20;
-const FONT_H5: u16     = 22;
-const FONT_H4: u16     = 24;
-const FONT_H3: u16     = 26;
-const FONT_H2: u16     = 28;
-const FONT_H1: u16     = 30;
+const FONT_H5: u16 = 22;
+const FONT_H4: u16 = 24;
+const FONT_H3: u16 = 26;
+const FONT_H2: u16 = 28;
+const FONT_H1: u16 = 30;
 
 const PADDING_NORMAL: Padding = Padding::new(5);
 
@@ -20,7 +20,6 @@ pub fn main() -> iced::Result {
         Settings::default()
     )
 }
-
 
 struct MarxtMain {
     state_input_pathname: text_input::State,
@@ -42,7 +41,7 @@ enum MartxFile {
 }
 
 struct MarkupRules {
-    rules: HashMap<String, u16>
+    rules: HashMap<String, u16>,
 }
 
 impl MarkupRules {
@@ -56,7 +55,7 @@ impl MarkupRules {
         let first_word = line.split_whitespace().nth(0);
         return match first_word {
             None => {
-                return Parsed::new(line, FONT_NORMAL)
+                return Parsed::new(line, FONT_NORMAL);
             }
             Some(first_word) => {
                 let matched_size = self.rules.get(first_word);
@@ -67,12 +66,12 @@ impl MarkupRules {
                     Some(got_size) => {
                         Parsed::new(
                             line.replace(first_word, ""),
-                            *got_size
+                            *got_size,
                         )
                     }
                 }
             }
-        }
+        };
     }
 }
 
@@ -84,15 +83,13 @@ struct Parsed {
 impl Parsed {
     fn new(line: String, size: u16) -> Parsed {
         Parsed {
-            line, size
+            line,
+            size,
         }
     }
 }
 
-
-
 impl MarxtMain {
-
     /// ログファイルの場所
     fn log_path(&self) -> &str {
         "/tmp/marxt.log"
@@ -113,7 +110,7 @@ impl MarxtMain {
             Err(err) => {
                 self.write_to_log(self.log_path(), err.to_string());
                 MartxFile::Unprocessable
-            },
+            }
             Ok(metadata) => {
                 if metadata.is_file() {
                     return MartxFile::File;
@@ -131,25 +128,22 @@ impl Application for MarxtMain {
     type Executor = executor::Default;
     type Message = Message;
     type Flags = ();
-    
-    fn new(_flags: ()) ->  (MarxtMain, Command<Message>) {
+
+    fn new(_flags: ()) -> (MarxtMain, Command<Message>) {
         (
             MarxtMain {
                 state_input_pathname: text_input::State::default(),
                 pathname: "".to_string(),
                 list_text: vec![],
                 markup_rules: MarkupRules::new(
-
-                    hashmap!{
+                    hashmap! {
                         "#".to_owned() => FONT_H1,
                         "##".to_owned() => FONT_H2,
                         "###".to_owned() => FONT_H3,
                         "####".to_owned() => FONT_H4,
                         "#####".to_owned() => FONT_H5,
                     }
-
-
-                )
+                ),
             },
             Command::none(),
         )
@@ -165,7 +159,7 @@ impl Application for MarxtMain {
             &mut self.state_input_pathname,
             "Input pathname...",
             &(self.pathname),
-            Message::ChangePathname
+            Message::ChangePathname,
         ).padding(PADDING_NORMAL);
         let mut col = Column::new().padding(PADDING_NORMAL).push(text_input);
         for text in self.list_text.iter() {
@@ -206,7 +200,6 @@ impl Application for MarxtMain {
                         }
                     }
                     MartxFile::File => {
-
                         let open_result = OpenOptions::new().read(true).open(Path::new(cloned_pathname.as_str()));
                         match open_result {
                             Ok(file) => {
@@ -231,11 +224,10 @@ impl Application for MarxtMain {
                             }
                         }
                     }
-                    MartxFile::Unprocessable => {
-                    }
+                    MartxFile::Unprocessable => {}
                 }
             }
         }
-        Command::none() 
+        Command::none()
     }
 }
