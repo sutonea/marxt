@@ -153,22 +153,6 @@ impl Application for MarxtMain {
         "Marxt".to_string()
     }
 
-    fn view(&mut self) -> iced::Element<'_, Message> {
-        self.write_to_log(self.log_path(), "view".to_string());
-        let text_input = TextInput::new(
-            &mut self.state_input_pathname,
-            "Input pathname...",
-            &(self.pathname),
-            Message::ChangePathname,
-        ).padding(PADDING_NORMAL);
-        let mut col = Column::new().padding(PADDING_NORMAL).push(text_input);
-        for text in self.list_text.iter() {
-            let parsed = self.markup_rules.parse(text.to_string());
-            col = col.push(Text::new(parsed.line).size(parsed.size));
-        }
-        col.into()
-    }
-
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ChangePathname(pathname) => {
@@ -229,5 +213,21 @@ impl Application for MarxtMain {
             }
         }
         Command::none()
+    }
+
+    fn view(&mut self) -> iced::Element<'_, Message> {
+        self.write_to_log(self.log_path(), "view".to_string());
+        let text_input = TextInput::new(
+            &mut self.state_input_pathname,
+            "Input pathname...",
+            &(self.pathname),
+            Message::ChangePathname,
+        ).padding(PADDING_NORMAL);
+        let mut col = Column::new().padding(PADDING_NORMAL).push(text_input);
+        for text in self.list_text.iter() {
+            let parsed = self.markup_rules.parse(text.to_string());
+            col = col.push(Text::new(parsed.line).size(parsed.size));
+        }
+        col.into()
     }
 }
