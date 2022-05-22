@@ -1,3 +1,6 @@
+//! # Marxt
+//! Markdown viewer
+
 use std::collections::HashMap;
 use iced::{Application, Column, Command, executor, Padding, Settings, Text, text_input, TextInput};
 use std::path::Path;
@@ -22,35 +25,62 @@ pub fn main() -> iced::Result {
 }
 
 struct MarxtMain {
+
+    /// Text in the text input widget.
     state_input_pathname: text_input::State,
+
+    /// Path for read directory or file.
     pathname: String,
+
+    /// Contents in the read file or entries in the read directory.
     list_text: Vec<String>,
+
+    /// Rules for render text.
     markup_rules: MarkupRules,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
+
+    /// Message for change `pathname`.
+    /// This message send after change `state_input_pathname`.
     ChangePathname(String)
 }
 
 #[derive(Debug, Clone)]
 enum MartxFile {
+    //! Marxt original file category
+
+    /// Directory
     Dir,
+
+    /// File
     File,
+
+    /// Not exists file or directory, Unreadable file or directory, etc
     Unprocessable,
 }
 
+
 struct MarkupRules {
+    //! Rules for markup text.
+
+    /// Include prefix and font size.
     rules: HashMap<String, u16>,
 }
 
 impl MarkupRules {
+
+    /// * `rules` - Prefix and font size
     fn new(rules: HashMap<String, u16>) -> MarkupRules {
         MarkupRules {
             rules
         }
     }
 
+    /// Parse target line with owned rule.
+    ///
+    /// * `line` - Parse target line
     fn parse(&self, line: String) -> Parsed {
         let first_word = line.split_whitespace().nth(0);
         return match first_word {
@@ -75,12 +105,20 @@ impl MarkupRules {
     }
 }
 
+/// Parsed line and font size
 struct Parsed {
+
+    /// Parsed line after remove keyword for markup.
     line: String,
+
+    /// Font size
     size: u16,
 }
 
 impl Parsed {
+
+    /// * `line` - Parsed line after remove keyword for markup.
+    /// * `size` - Font size
     fn new(line: String, size: u16) -> Parsed {
         Parsed {
             line,
@@ -90,20 +128,25 @@ impl Parsed {
 }
 
 impl MarxtMain {
-    /// ログファイルの場所
+
+    /// Log file path of this application.
     fn log_path(&self) -> &str {
         "/tmp/marxt.log"
     }
 
-    /// ログファイルに書き込む
+    /// Write to log file.
+    ///
+    /// * `log_path` - Log file path
+    /// * `message` - Message to write
     fn write_to_log(&self, log_path: &str, message: String) {
         let file = OpenOptions::new().create(true).append(true).open(log_path).unwrap();
         let mut f = BufWriter::new(file);
         f.write(message.as_bytes()).unwrap();
     }
 
-    /// 指定したパスのファイルタイプを返す
-    /// ファイルが存在しない場合 MartxFile::Unprocessable を返す
+    /// Judge file type
+    ///
+    /// * `file_path` - Path of target file
     fn file_type(&self, file_path: &str) -> MartxFile {
         let result_metadata = fs::metadata(file_path);
         match result_metadata {
