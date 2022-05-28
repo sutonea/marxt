@@ -164,6 +164,30 @@ impl MarxtMain {
             }
         }
     }
+
+    fn update_read_dir(&mut self, cloned_pathname: &str) {
+        let read_dir = fs::read_dir(cloned_pathname);
+        match read_dir {
+            Ok(read_dir) => {
+                self.list_text = vec![];
+                for entry in read_dir.into_iter() {
+                    match entry {
+                        Ok(entry) => {
+                            self.list_text.push(entry.path().to_str().unwrap().to_string());
+                        }
+                        Err(err) => {
+                            self.write_to_log(self.log_path(), "Error : DirEntry".to_string());
+                            self.write_to_log(self.log_path(), err.to_string());
+                        }
+                    }
+                }
+            }
+            Err(err) => {
+                self.write_to_log(self.log_path(), "Error : read_dir".to_string());
+                self.write_to_log(self.log_path(), err.to_string());
+            }
+        }
+    }
 }
 
 impl Application for MarxtMain {
@@ -203,27 +227,7 @@ impl Application for MarxtMain {
                 let file_type = self.file_type(&cloned_pathname);
                 match file_type {
                     MartxFile::Dir => {
-                        let read_dir = fs::read_dir(cloned_pathname);
-                        match read_dir {
-                            Ok(read_dir) => {
-                                self.list_text = vec![];
-                                for entry in read_dir.into_iter() {
-                                    match entry {
-                                        Ok(entry) => {
-                                            self.list_text.push(entry.path().to_str().unwrap().to_string());
-                                        }
-                                        Err(err) => {
-                                            self.write_to_log(self.log_path(), "Error : DirEntry".to_string());
-                                            self.write_to_log(self.log_path(), err.to_string());
-                                        }
-                                    }
-                                }
-                            }
-                            Err(err) => {
-                                self.write_to_log(self.log_path(), "Error : read_dir".to_string());
-                                self.write_to_log(self.log_path(), err.to_string());
-                            }
-                        }
+                        self.update_read_dir(&cloned_pathname);
                     }
                     MartxFile::File => {
                         let open_result = OpenOptions::new().read(true).open(Path::new(cloned_pathname.as_str()));
