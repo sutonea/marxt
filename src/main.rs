@@ -188,6 +188,32 @@ impl MarxtMain {
             }
         }
     }
+
+    fn update_for_view_file(&mut self, cloned_pathname: String) {
+        let open_result = OpenOptions::new().read(true).open(Path::new(cloned_pathname.as_str()));
+        match open_result {
+            Ok(file) => {
+                let reader = BufReader::new(file);
+                let lines = reader.lines();
+                self.list_text = vec![];
+                for line in lines.into_iter() {
+                    match line {
+                        Ok(line) => {
+                            self.list_text.push(line);
+                        }
+                        Err(err) => {
+                            self.write_to_log(self.log_path(), "Error : read_line".to_string());
+                            self.write_to_log(self.log_path(), err.to_string());
+                        }
+                    }
+                };
+            }
+            Err(err) => {
+                self.write_to_log(self.log_path(), "Error : read_file".to_string());
+                self.write_to_log(self.log_path(), err.to_string());
+            }
+        }
+    }
 }
 
 impl Application for MarxtMain {
@@ -230,29 +256,7 @@ impl Application for MarxtMain {
                         self.update_read_dir(&cloned_pathname);
                     }
                     MartxFile::File => {
-                        let open_result = OpenOptions::new().read(true).open(Path::new(cloned_pathname.as_str()));
-                        match open_result {
-                            Ok(file) => {
-                                let reader = BufReader::new(file);
-                                let lines = reader.lines();
-                                self.list_text = vec![];
-                                for line in lines.into_iter() {
-                                    match line {
-                                        Ok(line) => {
-                                            self.list_text.push(line);
-                                        }
-                                        Err(err) => {
-                                            self.write_to_log(self.log_path(), "Error : read_line".to_string());
-                                            self.write_to_log(self.log_path(), err.to_string());
-                                        }
-                                    }
-                                };
-                            }
-                            Err(err) => {
-                                self.write_to_log(self.log_path(), "Error : read_file".to_string());
-                                self.write_to_log(self.log_path(), err.to_string());
-                            }
-                        }
+                        self.update_for_view_file(cloned_pathname);
                     }
                     MartxFile::Unprocessable => {}
                 }
