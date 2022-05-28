@@ -165,7 +165,7 @@ impl MarxtMain {
         }
     }
 
-    fn update_read_dir(&mut self, cloned_pathname: &str) {
+    fn update_read_dir(&mut self, cloned_pathname: String) {
         let read_dir = fs::read_dir(cloned_pathname);
         match read_dir {
             Ok(read_dir) => {
@@ -253,7 +253,7 @@ impl Application for MarxtMain {
                 let file_type = self.file_type(&cloned_pathname);
                 match file_type {
                     MartxFile::Dir => {
-                        self.update_read_dir(&cloned_pathname);
+                        self.update_read_dir(cloned_pathname);
                     }
                     MartxFile::File => {
                         self.update_for_view_file(cloned_pathname);
