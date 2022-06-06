@@ -51,15 +51,66 @@ enum Message {
 enum MartxFile {
 
     /// Directory
-    Dir,
+    Dir(Vec<String>),
 
     /// File
-    File,
+    File(Vec<String>),
 
     /// Not exists file or directory, Unreadable file or directory, etc
     Unprocessable,
 }
 
+impl MartxFile {
+    fn from(path: &str) -> Self {
+        return match fs::metadata(path) {
+            Err(_) => {
+                Self::Unprocessable
+            }
+            Ok(metadata) => {
+                if metadata.is_file() {
+                    let mut got_lines = vec![];
+                    let open_result = OpenOptions::new().read(true).open(Path::new(path.clone()));
+                    match open_result {
+                        Ok(file) => {
+                            let reader = BufReader::new(file);
+                            let lines = reader.lines();
+
+                            for line in lines.into_iter() {
+                                got_lines.push(line.unwrap());
+                            };
+
+                            Self::File(got_lines)
+                        }
+                        Err(_err) => {
+                            Self::Unprocessable
+                        }
+                    }
+                } else if metadata.is_dir() {
+                    let read_dir = fs::read_dir(path.clone());
+                    let mut entries = vec![];
+                    match read_dir {
+                        Ok(read_dir) => {
+                            for entry in read_dir.into_iter() {
+                                match entry {
+                                    Ok(entry) => {
+                                        entries.push(entry.path().to_str().unwrap().to_string());
+                                    }
+                                    Err(_err) => {}
+                                }
+                            }
+                            Self::Dir(entries)
+                        }
+                        Err(_err) => {
+                            Self::Unprocessable
+                        }
+                    }
+                } else {
+                    MartxFile::Unprocessable
+                }
+            }
+        }
+    }
+}
 
 /// Rules for markup text.
 struct MarkupRules {
@@ -142,28 +193,6 @@ impl MarxtMain {
         let mut f = BufWriter::new(file);
         f.write(message.as_bytes()).unwrap();
     }
-
-    /// Judge file type
-    ///
-    /// * `file_path` - Path of target file
-    fn file_type(&self, file_path: &str) -> MartxFile {
-        let result_metadata = fs::metadata(file_path);
-        match result_metadata {
-            Err(err) => {
-                self.write_to_log(self.log_path(), err.to_string());
-                MartxFile::Unprocessable
-            }
-            Ok(metadata) => {
-                if metadata.is_file() {
-                    return MartxFile::File;
-                }
-                if metadata.is_dir() {
-                    return MartxFile::Dir;
-                }
-                MartxFile::Unprocessable
-            }
-        }
-    }
 }
 
 impl Application for MarxtMain {
@@ -200,55 +229,13 @@ impl Application for MarxtMain {
             Message::ChangePathname(pathname) => {
                 self.pathname = pathname.clone();
                 let cloned_pathname = pathname.clone();
-                let file_type = self.file_type(&cloned_pathname);
+                let file_type = MartxFile::from(&cloned_pathname);
                 match file_type {
-                    MartxFile::Dir => {
-                        let read_dir = fs::read_dir(cloned_pathname);
-                        match read_dir {
-                            Ok(read_dir) => {
-                                self.list_text = vec![];
-                                for entry in read_dir.into_iter() {
-                                    match entry {
-                                        Ok(entry) => {
-                                            self.list_text.push(entry.path().to_str().unwrap().to_string());
-                                        }
-                                        Err(err) => {
-                                            self.write_to_log(self.log_path(), "Error : DirEntry".to_string());
-                                            self.write_to_log(self.log_path(), err.to_string());
-                                        }
-                                    }
-                                }
-                            }
-                            Err(err) => {
-                                self.write_to_log(self.log_path(), "Error : read_dir".to_string());
-                                self.write_to_log(self.log_path(), err.to_string());
-                            }
-                        }
+                    MartxFile::Dir(entries) => {
+                        self.list_text = entries;
                     }
-                    MartxFile::File => {
-                        let open_result = OpenOptions::new().read(true).open(Path::new(cloned_pathname.as_str()));
-                        match open_result {
-                            Ok(file) => {
-                                let reader = BufReader::new(file);
-                                let lines = reader.lines();
-                                self.list_text = vec![];
-                                for line in lines.into_iter() {
-                                    match line {
-                                        Ok(line) => {
-                                            self.list_text.push(line);
-                                        }
-                                        Err(err) => {
-                                            self.write_to_log(self.log_path(), "Error : read_line".to_string());
-                                            self.write_to_log(self.log_path(), err.to_string());
-                                        }
-                                    }
-                                };
-                            }
-                            Err(err) => {
-                                self.write_to_log(self.log_path(), "Error : read_file".to_string());
-                                self.write_to_log(self.log_path(), err.to_string());
-                            }
-                        }
+                    MartxFile::File(lines) => {
+                        self.list_text = lines;
                     }
                     MartxFile::Unprocessable => {}
                 }
