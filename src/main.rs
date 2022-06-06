@@ -48,7 +48,7 @@ enum Message {
 
 /// Marxt original file category
 #[derive(Debug, Clone)]
-enum MartxFile {
+enum MarxtFile {
 
     /// Directory
     Dir(Vec<String>),
@@ -60,7 +60,7 @@ enum MartxFile {
     Unprocessable,
 }
 
-impl MartxFile {
+impl MarxtFile {
     fn from(path: &str) -> Self {
         return match fs::metadata(path) {
             Err(_) => {
@@ -105,7 +105,7 @@ impl MartxFile {
                         }
                     }
                 } else {
-                    MartxFile::Unprocessable
+                    MarxtFile::Unprocessable
                 }
             }
         }
@@ -229,15 +229,15 @@ impl Application for MarxtMain {
             Message::ChangePathname(pathname) => {
                 self.pathname = pathname.clone();
                 let cloned_pathname = pathname.clone();
-                let file_type = MartxFile::from(&cloned_pathname);
+                let file_type = MarxtFile::from(&cloned_pathname);
                 match file_type {
-                    MartxFile::Dir(entries) => {
+                    MarxtFile::Dir(entries) => {
                         self.list_text = entries;
                     }
-                    MartxFile::File(lines) => {
+                    MarxtFile::File(lines) => {
                         self.list_text = lines;
                     }
-                    MartxFile::Unprocessable => {}
+                    MarxtFile::Unprocessable => {}
                 }
             }
         }
