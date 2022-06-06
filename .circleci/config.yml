@@ -16,5 +16,5 @@ jobs:
       - checkout
       - run: cargo --version
       - run:
-          name: "リリースビルド"
-          command: "cargo build --release"
+          name: "cargo check"
+          command: "cargo check"
