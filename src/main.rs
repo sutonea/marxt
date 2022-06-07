@@ -27,7 +27,7 @@ struct MarxtMain {
     /// Text in the text input widget.
     state_input_pathname: text_input::State,
 
-    marxt_file: MarxtFile,
+    marxt_file: MarxtResource,
 
     /// Path for read directory or file.
     pathname: String,
@@ -46,7 +46,7 @@ enum Message {
 
 /// Marxt original file category
 #[derive(Debug, Clone)]
-enum MarxtFile {
+enum MarxtResource {
 
     /// Directory
     Dir(Vec<String>),
@@ -58,7 +58,7 @@ enum MarxtFile {
     Unprocessable,
 }
 
-impl MarxtFile {
+impl MarxtResource {
     fn from(path: &str) -> Self {
         return match fs::metadata(path) {
             Err(_) => {
@@ -103,7 +103,7 @@ impl MarxtFile {
                         }
                     }
                 } else {
-                    MarxtFile::Unprocessable
+                    MarxtResource::Unprocessable
                 }
             }
         }
@@ -118,10 +118,10 @@ impl MarxtFile {
                         "#####".to_owned() => FONT_H5,
                     };
         match self {
-            MarxtFile::Dir(_) => {
+            MarxtResource::Dir(_) => {
                 Parsed::new(line, FONT_NORMAL)
             }
-            MarxtFile::File(_) => {
+            MarxtResource::File(_) => {
                 let first_word = line.split_whitespace().nth(0);
                 return match first_word {
                     None => {
@@ -143,7 +143,7 @@ impl MarxtFile {
                     }
                 };
             }
-            MarxtFile::Unprocessable => {
+            MarxtResource::Unprocessable => {
                 Parsed::new(line, FONT_NORMAL)
             }
         }
@@ -201,7 +201,7 @@ impl Application for MarxtMain {
                 state_input_pathname: text_input::State::default(),
                 pathname: "".to_string(),
                 list_text: vec![],
-                marxt_file: MarxtFile::Unprocessable,
+                marxt_file: MarxtResource::Unprocessable,
             },
             Command::none(),
         )
@@ -216,15 +216,15 @@ impl Application for MarxtMain {
             Message::ChangePathname(pathname) => {
                 self.pathname = pathname.clone();
                 let cloned_pathname = pathname.clone();
-                let file_type = MarxtFile::from(&cloned_pathname);
+                let file_type = MarxtResource::from(&cloned_pathname);
                 match file_type {
-                    MarxtFile::Dir(entries) => {
+                    MarxtResource::Dir(entries) => {
                         self.list_text = entries;
                     }
-                    MarxtFile::File(lines) => {
+                    MarxtResource::File(lines) => {
                         self.list_text = lines;
                     }
-                    MarxtFile::Unprocessable => {}
+                    MarxtResource::Unprocessable => {}
                 }
             }
         }
