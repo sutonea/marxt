@@ -27,7 +27,7 @@ struct MarxtMain {
     /// Text in the text input widget.
     state_input_pathname: text_input::State,
 
-    marxt_resource: Option<MarxtResource>,
+    marxt_file: MarxtResource,
 
     /// Path for read directory or file.
     pathname: String,
@@ -53,13 +53,16 @@ enum MarxtResource {
 
     /// File
     File(Vec<String>),
+
+    /// Not exists file or directory, Unreadable file or directory, etc
+    Unprocessable,
 }
 
 impl MarxtResource {
-    fn from(path: &str) -> Option<Self> {
+    fn from(path: &str) -> Self {
         return match fs::metadata(path) {
             Err(_) => {
-                None
+                Self::Unprocessable
             }
             Ok(metadata) => {
                 if metadata.is_file() {
@@ -74,10 +77,10 @@ impl MarxtResource {
                                 got_lines.push(line.unwrap());
                             };
 
-                            Some(Self::File(got_lines))
+                            Self::File(got_lines)
                         }
                         Err(_err) => {
-                            None
+                            Self::Unprocessable
                         }
                     }
                 } else if metadata.is_dir() {
@@ -93,14 +96,14 @@ impl MarxtResource {
                                     Err(_err) => {}
                                 }
                             }
-                            Some(Self::Dir(entries))
+                            Self::Dir(entries)
                         }
                         Err(_err) => {
-                            None
+                            Self::Unprocessable
                         }
                     }
                 } else {
-                    None
+                    MarxtResource::Unprocessable
                 }
             }
         }
@@ -139,6 +142,9 @@ impl MarxtResource {
                         }
                     }
                 };
+            }
+            MarxtResource::Unprocessable => {
+                Parsed::new(line, FONT_NORMAL)
             }
         }
     }
@@ -195,7 +201,7 @@ impl Application for MarxtMain {
                 state_input_pathname: text_input::State::default(),
                 pathname: "".to_string(),
                 list_text: vec![],
-                marxt_resource: None,
+                marxt_file: MarxtResource::Unprocessable,
             },
             Command::none(),
         )
@@ -212,17 +218,13 @@ impl Application for MarxtMain {
                 let cloned_pathname = pathname.clone();
                 let file_type = MarxtResource::from(&cloned_pathname);
                 match file_type {
-                    Some(marxt_resource) => {
-                        match marxt_resource {
-                            MarxtResource::Dir(entries) => {
-                                self.list_text = entries;
-                            }
-                            MarxtResource::File(lines) => {
-                                self.list_text = lines;
-                            }
-                        }
+                    MarxtResource::Dir(entries) => {
+                        self.list_text = entries;
                     }
-                    None => {}
+                    MarxtResource::File(lines) => {
+                        self.list_text = lines;
+                    }
+                    MarxtResource::Unprocessable => {}
                 }
             }
         }
@@ -238,16 +240,11 @@ impl Application for MarxtMain {
             Message::ChangePathname,
         ).padding(PADDING_NORMAL);
         let mut col = Column::new().padding(PADDING_NORMAL).push(text_input);
-        match &self.marxt_resource {
-            None => {}
-            Some(marxt_resource) => {
-                for text in self.list_text.iter() {
-                    let parsed = marxt_resource.parse(text.to_string());
-                    col = col.push(Text::new(parsed.line).size(parsed.size));
-                }
-            }
+        for text in self.list_text.iter() {
+            // let parsed = self.markup_rules.parse(text.to_string());
+            let parsed = self.marxt_file.parse(text.to_string());
+            col = col.push(Text::new(parsed.line).size(parsed.size));
         }
-
         col.into()
     }
 }
