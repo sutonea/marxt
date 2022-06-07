@@ -1,6 +1,5 @@
 // Marxt : Markdown viewer
 
-use std::collections::HashMap;
 use iced::{Application, Column, Command, executor, Padding, Settings, Text, text_input, TextInput};
 use std::path::Path;
 use std::fs::OpenOptions;
@@ -28,14 +27,13 @@ struct MarxtMain {
     /// Text in the text input widget.
     state_input_pathname: text_input::State,
 
+    marxt_file: MarxtFile,
+
     /// Path for read directory or file.
     pathname: String,
 
     /// Contents in the read file or entries in the read directory.
     list_text: Vec<String>,
-
-    /// Rules for render text.
-    markup_rules: MarkupRules,
 }
 
 #[derive(Debug, Clone)]
@@ -110,48 +108,45 @@ impl MarxtFile {
             }
         }
     }
-}
 
-/// Rules for markup text.
-struct MarkupRules {
-
-    /// Include prefix and font size.
-    rules: HashMap<String, u16>,
-}
-
-impl MarkupRules {
-
-    /// * `rules` - Prefix and font size
-    fn new(rules: HashMap<String, u16>) -> MarkupRules {
-        MarkupRules {
-            rules
-        }
-    }
-
-    /// Parse target line with owned rule.
-    ///
-    /// * `line` - Parse target line
     fn parse(&self, line: String) -> Parsed {
-        let first_word = line.split_whitespace().nth(0);
-        return match first_word {
-            None => {
-                return Parsed::new(line, FONT_NORMAL);
+        let rules = hashmap! {
+                        "#".to_owned() => FONT_H1,
+                        "##".to_owned() => FONT_H2,
+                        "###".to_owned() => FONT_H3,
+                        "####".to_owned() => FONT_H4,
+                        "#####".to_owned() => FONT_H5,
+                    };
+        match self {
+            MarxtFile::Dir(_) => {
+                Parsed::new(line, FONT_NORMAL)
             }
-            Some(first_word) => {
-                let matched_size = self.rules.get(first_word);
-                match matched_size {
+            MarxtFile::File(_) => {
+                let first_word = line.split_whitespace().nth(0);
+                return match first_word {
                     None => {
-                        Parsed::new(line, FONT_NORMAL)
+                        return Parsed::new(line, FONT_NORMAL);
                     }
-                    Some(got_size) => {
-                        Parsed::new(
-                            line.replace(first_word, ""),
-                            *got_size,
-                        )
+                    Some(first_word) => {
+                        let matched_size = rules.get(first_word);
+                        match matched_size {
+                            None => {
+                                Parsed::new(line, FONT_NORMAL)
+                            }
+                            Some(got_size) => {
+                                Parsed::new(
+                                    line.replace(first_word, ""),
+                                    *got_size,
+                                )
+                            }
+                        }
                     }
-                }
+                };
             }
-        };
+            MarxtFile::Unprocessable => {
+                Parsed::new(line, FONT_NORMAL)
+            }
+        }
     }
 }
 
@@ -206,15 +201,7 @@ impl Application for MarxtMain {
                 state_input_pathname: text_input::State::default(),
                 pathname: "".to_string(),
                 list_text: vec![],
-                markup_rules: MarkupRules::new(
-                    hashmap! {
-                        "#".to_owned() => FONT_H1,
-                        "##".to_owned() => FONT_H2,
-                        "###".to_owned() => FONT_H3,
-                        "####".to_owned() => FONT_H4,
-                        "#####".to_owned() => FONT_H5,
-                    }
-                ),
+                marxt_file: MarxtFile::Unprocessable,
             },
             Command::none(),
         )
@@ -254,7 +241,8 @@ impl Application for MarxtMain {
         ).padding(PADDING_NORMAL);
         let mut col = Column::new().padding(PADDING_NORMAL).push(text_input);
         for text in self.list_text.iter() {
-            let parsed = self.markup_rules.parse(text.to_string());
+            // let parsed = self.markup_rules.parse(text.to_string());
+            let parsed = self.marxt_file.parse(text.to_string());
             col = col.push(Text::new(parsed.line).size(parsed.size));
         }
         col.into()
