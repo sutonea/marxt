@@ -17,12 +17,12 @@ const FONT_H1: u16 = 30;
 const PADDING_NORMAL: Padding = Padding::new(5);
 
 pub fn main() -> iced::Result {
-    MarxtMain::run(
+    MarxtResource::run(
         Settings::default()
     )
 }
 
-struct MarxtMain {
+struct MarxtResource {
 
     /// Text in the text input widget.
     state_input_pathname: text_input::State,
@@ -172,7 +172,7 @@ impl Parsed {
     }
 }
 
-impl MarxtMain {
+impl MarxtResource {
 
     /// Log file path of this application.
     fn log_path(&self) -> &str {
@@ -190,14 +190,14 @@ impl MarxtMain {
     }
 }
 
-impl Application for MarxtMain {
+impl Application for MarxtResource {
     type Executor = executor::Default;
     type Message = Message;
     type Flags = ();
 
-    fn new(_flags: ()) -> (MarxtMain, Command<Message>) {
+    fn new(_flags: ()) -> (MarxtResource, Command<Message>) {
         (
-            MarxtMain {
+            MarxtResource {
                 state_input_pathname: text_input::State::default(),
                 pathname: "".to_string(),
                 list_text: vec![],
