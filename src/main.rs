@@ -59,10 +59,10 @@ enum MarxtResource {
 }
 
 impl MarxtResource {
-    fn from(path: &str) -> Self {
+    fn from(path: &str) -> Option<Self> {
         return match fs::metadata(path) {
             Err(_) => {
-                Self::Unprocessable
+                None
             }
             Ok(metadata) => {
                 if metadata.is_file() {
@@ -77,10 +77,10 @@ impl MarxtResource {
                                 got_lines.push(line.unwrap());
                             };
 
-                            Self::File(got_lines)
+                            Some(Self::File(got_lines))
                         }
                         Err(_err) => {
-                            Self::Unprocessable
+                            Some(Self::Unprocessable)
                         }
                     }
                 } else if metadata.is_dir() {
@@ -96,14 +96,14 @@ impl MarxtResource {
                                     Err(_err) => {}
                                 }
                             }
-                            Self::Dir(entries)
+                            Some(Self::Dir(entries))
                         }
                         Err(_err) => {
-                            Self::Unprocessable
+                            None
                         }
                     }
                 } else {
-                    MarxtResource::Unprocessable
+                    None
                 }
             }
         }
@@ -216,15 +216,19 @@ impl Application for MarxtMain {
             Message::ChangePathname(pathname) => {
                 self.pathname = pathname.clone();
                 let cloned_pathname = pathname.clone();
-                let file_type = MarxtResource::from(&cloned_pathname);
-                match file_type {
-                    MarxtResource::Dir(entries) => {
-                        self.list_text = entries;
+                match MarxtResource::from(&cloned_pathname) {
+                    None => {}
+                    Some(resource) => {
+                        match resource {
+                            MarxtResource::Dir(entries) => {
+                                self.list_text = entries;
+                            }
+                            MarxtResource::File(lines) => {
+                                self.list_text = lines;
+                            }
+                            MarxtResource::Unprocessable => {}
+                        }
                     }
-                    MarxtResource::File(lines) => {
-                        self.list_text = lines;
-                    }
-                    MarxtResource::Unprocessable => {}
                 }
             }
         }
