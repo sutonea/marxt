@@ -27,7 +27,7 @@ struct MarxtMain {
     /// Text in the text input widget.
     state_input_pathname: text_input::State,
 
-    marxt_file: MarxtResource,
+    marxt_resource: Option<MarxtResource>,
 
     /// Path for read directory or file.
     pathname: String,
@@ -53,9 +53,6 @@ enum MarxtResource {
 
     /// File
     File(Vec<String>),
-
-    /// Not exists file or directory, Unreadable file or directory, etc
-    Unprocessable,
 }
 
 impl MarxtResource {
@@ -80,7 +77,7 @@ impl MarxtResource {
                             Some(Self::File(got_lines))
                         }
                         Err(_err) => {
-                            Some(Self::Unprocessable)
+                            None
                         }
                     }
                 } else if metadata.is_dir() {
@@ -107,6 +104,23 @@ impl MarxtResource {
                 }
             }
         }
+    }
+
+    fn list_text(&self) -> Vec<String> {
+        let mut vec = vec![];
+        match &self {
+            MarxtResource::Dir(entries) => {
+                for entry in entries.iter() {
+                    vec.push(entry.clone());
+                }
+            }
+            MarxtResource::File(lines) => {
+                for line in lines.iter() {
+                    vec.push(line.clone());
+                }
+            }
+        }
+        vec.to_owned()
     }
 
     fn parse(&self, line: String) -> Parsed {
@@ -142,9 +156,6 @@ impl MarxtResource {
                         }
                     }
                 };
-            }
-            MarxtResource::Unprocessable => {
-                Parsed::new(line, FONT_NORMAL)
             }
         }
     }
@@ -201,7 +212,7 @@ impl Application for MarxtMain {
                 state_input_pathname: text_input::State::default(),
                 pathname: "".to_string(),
                 list_text: vec![],
-                marxt_file: MarxtResource::Unprocessable,
+                marxt_resource: None,
             },
             Command::none(),
         )
@@ -216,18 +227,11 @@ impl Application for MarxtMain {
             Message::ChangePathname(pathname) => {
                 self.pathname = pathname.clone();
                 let cloned_pathname = pathname.clone();
-                match MarxtResource::from(&cloned_pathname) {
+                self.marxt_resource = MarxtResource::from(&cloned_pathname);
+                match &self.marxt_resource {
                     None => {}
                     Some(resource) => {
-                        match resource {
-                            MarxtResource::Dir(entries) => {
-                                self.list_text = entries;
-                            }
-                            MarxtResource::File(lines) => {
-                                self.list_text = lines;
-                            }
-                            MarxtResource::Unprocessable => {}
-                        }
+                        self.list_text = resource.list_text();
                     }
                 }
             }
@@ -245,9 +249,17 @@ impl Application for MarxtMain {
         ).padding(PADDING_NORMAL);
         let mut col = Column::new().padding(PADDING_NORMAL).push(text_input);
         for text in self.list_text.iter() {
+            match &self.marxt_resource {
+                None => {}
+                Some(resource) => {
+                    let parsed = resource.parse(text.to_string());
+                    col = col.push(Text::new(parsed.line).size(parsed.size));
+                }
+            }
             // let parsed = self.markup_rules.parse(text.to_string());
-            let parsed = self.marxt_file.parse(text.to_string());
-            col = col.push(Text::new(parsed.line).size(parsed.size));
+
+            // let parsed = self.marxt_resource.parse(text.to_string());
+            // col = col.push(Text::new(parsed.line).size(parsed.size));
         }
         col.into()
     }
