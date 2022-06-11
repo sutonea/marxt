@@ -2,7 +2,7 @@
 
 Markdown file viewer
 
-<img width="468" alt="marxt_sample" src="https://user-images.githubusercontent.com/748411/173193505-d978105f-8468-4d7a-9393-dfc02463fd16.png">
+<img width="663" alt="marxt_sample" src="https://user-images.githubusercontent.com/748411/173194114-8c856bee-ec8f-427f-964f-ad22443b3abc.png">
 
 # Usage
 
