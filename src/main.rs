@@ -1,6 +1,6 @@
 // Marxt : Markdown viewer
 
-use iced::{Application, Column, Command, executor, Padding, Settings, Text, text_input, TextInput};
+use iced::{Application, Column, Command, executor, Font, Padding, Settings, Text, text_input, TextInput};
 use std::path::Path;
 use std::fs::OpenOptions;
 use std::fs;
@@ -15,6 +15,11 @@ const FONT_H2: u16 = 28;
 const FONT_H1: u16 = 30;
 
 const PADDING_NORMAL: Padding = Padding::new(5);
+
+const FONT_IPA_G: Font = Font::External {
+    name: "ipaexg",
+    bytes: include_bytes!("../resources/font/ipaexg.ttf")
+};
 
 pub fn main() -> iced::Result {
     MarxtMain::run(
@@ -246,20 +251,16 @@ impl Application for MarxtMain {
             "Input pathname...",
             &(self.pathname),
             Message::ChangePathname,
-        ).padding(PADDING_NORMAL);
+        ).padding(PADDING_NORMAL).font(FONT_IPA_G);
         let mut col = Column::new().padding(PADDING_NORMAL).push(text_input);
         for text in self.list_text.iter() {
             match &self.marxt_resource {
                 None => {}
                 Some(resource) => {
                     let parsed = resource.parse(text.to_string());
-                    col = col.push(Text::new(parsed.line).size(parsed.size));
+                    col = col.push(Text::new(parsed.line).size(parsed.size).font(FONT_IPA_G));
                 }
             }
-            // let parsed = self.markup_rules.parse(text.to_string());
-
-            // let parsed = self.marxt_resource.parse(text.to_string());
-            // col = col.push(Text::new(parsed.line).size(parsed.size));
         }
         col.into()
     }
