@@ -6,6 +6,7 @@ use std::fs::OpenOptions;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use maplit::hashmap;
+use std::ffi::OsStr;
 
 const FONT_NORMAL: u16 = 20;
 const FONT_H5: u16 = 22;
@@ -93,7 +94,23 @@ impl MarxtResource {
                             for entry in read_dir.into_iter() {
                                 match entry {
                                     Ok(entry) => {
-                                        entries.push(entry.path().to_str().unwrap().to_string());
+                                        match entry.file_type() {
+                                            Err(_) => {},
+                                            Ok(file_type) => {
+                                                if file_type.is_dir() {
+                                                    entries.push(entry.path().to_str().unwrap().to_string());
+                                                } else if file_type.is_file() {
+                                                    match entry.path().extension() {
+                                                        None => {}
+                                                        Some(extention) => {
+                                                            if extention == OsStr::new("md") {
+                                                                entries.push(entry.path().to_str().unwrap().to_string());
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                     Err(_err) => {}
                                 }
