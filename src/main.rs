@@ -96,8 +96,8 @@ impl MarxtResource {
                                         match entry.path().extension() {
                                             None => {}
                                             Some(extention) => {
-                                                if extention.as_str() == "md" {
-                                                    entries.push(entry.path().as_str().unwrap().to_string());
+                                                if extention.to_str() == "md" {
+                                                    entries.push(entry.path().to_str().unwrap().to_string());
                                                 }
                                             }
                                         }
