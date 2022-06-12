@@ -94,15 +94,23 @@ impl MarxtResource {
                             for entry in read_dir.into_iter() {
                                 match entry {
                                     Ok(entry) => {
-                                        match entry.path().extension() {
-                                            None => {}
-                                            Some(extention) => {
-                                                if extention == OsStr::new("md") {
+                                        match entry.file_type() {
+                                            Err(_) => {},
+                                            Ok(file_type) => {
+                                                if file_type.is_dir() {
                                                     entries.push(entry.path().to_str().unwrap().to_string());
+                                                } else if file_type.is_file() {
+                                                    match entry.path().extension() {
+                                                        None => {}
+                                                        Some(extention) => {
+                                                            if extention == OsStr::new("md") {
+                                                                entries.push(entry.path().to_str().unwrap().to_string());
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
-                                        // entries.push(entry.path().to_str().unwrap().to_string());
                                     }
                                     Err(_err) => {}
                                 }
