@@ -93,7 +93,15 @@ impl MarxtResource {
                             for entry in read_dir.into_iter() {
                                 match entry {
                                     Ok(entry) => {
-                                        entries.push(entry.path().to_str().unwrap().to_string());
+                                        match entry.path().extention() {
+                                            None => {}
+                                            Some(extention) => {
+                                                if extention.as_str() == "md" {
+                                                    entries.push(entry.path().to_str().unwrap().to_string());
+                                                }
+                                            }
+                                        }
+                                        // entries.push(entry.path().to_str().unwrap().to_string());
                                     }
                                     Err(_err) => {}
                                 }
