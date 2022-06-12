@@ -6,6 +6,7 @@ use std::fs::OpenOptions;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use maplit::hashmap;
+use std::ffi::OsStr;
 
 const FONT_NORMAL: u16 = 20;
 const FONT_H5: u16 = 22;
@@ -96,7 +97,7 @@ impl MarxtResource {
                                         match entry.path().extension() {
                                             None => {}
                                             Some(extention) => {
-                                                if extention.to_str() == "md" {
+                                                if extention == OsStr::new("md") {
                                                     entries.push(entry.path().to_str().unwrap().to_string());
                                                 }
                                             }
