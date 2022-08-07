@@ -1,12 +1,13 @@
 // Marxt : Markdown viewer
 
-use iced::{Application, Column, Command, executor, Font, Padding, Settings, Text, text_input, TextInput};
+use iced::{Application, Column, Command, executor, Font, Padding, Settings, Subscription, Text, text_input, TextInput};
 use std::path::Path;
 use std::fs::OpenOptions;
 use std::fs;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use maplit::hashmap;
 use std::ffi::OsStr;
+use std::time::{Duration, Instant};
 
 const FONT_NORMAL: u16 = 20;
 const FONT_H5: u16 = 22;
@@ -47,7 +48,8 @@ enum Message {
 
     /// Message for change `pathname`.
     /// This message send after change `state_input_pathname`.
-    ChangePathname(String)
+    ChangePathname(String),
+    Reload(Instant),
 }
 
 /// Marxt original file category
@@ -257,6 +259,15 @@ impl Application for MarxtMain {
                     }
                 }
             }
+            Message::Reload(_) => {
+                self.marxt_resource = MarxtResource::from(&self.pathname);
+                match &self.marxt_resource {
+                    None => {}
+                    Some(resource) => {
+                        self.list_text = resource.list_text();
+                    }
+                }
+            }
         }
         Command::none()
     }
@@ -280,5 +291,9 @@ impl Application for MarxtMain {
             }
         }
         col.into()
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        iced::time::every(Duration::from_millis(100)).map(Message::Reload)
     }
 }
