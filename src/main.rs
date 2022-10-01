@@ -1,12 +1,15 @@
 // Marxt : Markdown viewer
 
-use iced::{Application, Column, Command, executor, Font, Padding, Settings, Subscription, Text, text_input, TextInput};
-use std::path::Path;
-use std::fs::OpenOptions;
-use std::fs;
-use std::io::{BufRead, BufReader, BufWriter, Write};
+use iced::{
+    executor, text_input, Application, Column, Command, Font, Padding, Row, Settings, Subscription,
+    Text, TextInput,
+};
 use maplit::hashmap;
 use std::ffi::OsStr;
+use std::fs;
+use std::fs::OpenOptions;
+use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::path::Path;
 use std::time::{Duration, Instant};
 
 const FONT_NORMAL: u16 = 20;
@@ -20,17 +23,14 @@ const PADDING_NORMAL: Padding = Padding::new(5);
 
 const FONT_IPA_G: Font = Font::External {
     name: "ipaexg",
-    bytes: include_bytes!("../resources/font/ipaexg.ttf")
+    bytes: include_bytes!("../resources/font/ipaexg.ttf"),
 };
 
 pub fn main() -> iced::Result {
-    MarxtMain::run(
-        Settings::default()
-    )
+    MarxtMain::run(Settings::default())
 }
 
 struct MarxtMain {
-
     /// Text in the text input widget.
     state_input_pathname: text_input::State,
 
@@ -45,7 +45,6 @@ struct MarxtMain {
 
 #[derive(Debug, Clone)]
 enum Message {
-
     /// Message for change `pathname`.
     /// This message send after change `state_input_pathname`.
     ChangePathname(String),
@@ -55,7 +54,6 @@ enum Message {
 /// Marxt original file category
 #[derive(Debug, Clone)]
 enum MarxtResource {
-
     /// Directory
     Dir(Vec<String>),
 
@@ -66,9 +64,7 @@ enum MarxtResource {
 impl MarxtResource {
     fn from(path: &str) -> Option<Self> {
         return match fs::metadata(path) {
-            Err(_) => {
-                None
-            }
+            Err(_) => None,
             Ok(metadata) => {
                 if metadata.is_file() {
                     let mut got_lines = vec![];
@@ -80,13 +76,11 @@ impl MarxtResource {
 
                             for line in lines.into_iter() {
                                 got_lines.push(line.unwrap());
-                            };
+                            }
 
                             Some(Self::File(got_lines))
                         }
-                        Err(_err) => {
-                            None
-                        }
+                        Err(_err) => None,
                     }
                 } else if metadata.is_dir() {
                     let read_dir = fs::read_dir(path.clone());
@@ -95,39 +89,43 @@ impl MarxtResource {
                         Ok(read_dir) => {
                             for entry in read_dir.into_iter() {
                                 match entry {
-                                    Ok(entry) => {
-                                        match entry.file_type() {
-                                            Err(_) => {},
-                                            Ok(file_type) => {
-                                                if file_type.is_dir() {
-                                                    entries.push(entry.path().to_str().unwrap().to_string());
-                                                } else if file_type.is_file() {
-                                                    match entry.path().extension() {
-                                                        None => {}
-                                                        Some(extention) => {
-                                                            if extention == OsStr::new("md") {
-                                                                entries.push(entry.path().to_str().unwrap().to_string());
-                                                            }
+                                    Ok(entry) => match entry.file_type() {
+                                        Err(_) => {}
+                                        Ok(file_type) => {
+                                            if file_type.is_dir() {
+                                                entries.push(
+                                                    entry.path().to_str().unwrap().to_string(),
+                                                );
+                                            } else if file_type.is_file() {
+                                                match entry.path().extension() {
+                                                    None => {}
+                                                    Some(extention) => {
+                                                        if extention == OsStr::new("md") {
+                                                            entries.push(
+                                                                entry
+                                                                    .path()
+                                                                    .to_str()
+                                                                    .unwrap()
+                                                                    .to_string(),
+                                                            );
                                                         }
                                                     }
                                                 }
                                             }
                                         }
-                                    }
+                                    },
                                     Err(_err) => {}
                                 }
                             }
                             Some(Self::Dir(entries))
                         }
-                        Err(_err) => {
-                            None
-                        }
+                        Err(_err) => None,
                     }
                 } else {
                     None
                 }
             }
-        }
+        };
     }
 
     fn list_text(&self) -> Vec<String> {
@@ -149,33 +147,26 @@ impl MarxtResource {
 
     fn parse(&self, line: String) -> Parsed {
         let rules = hashmap! {
-                        "#".to_owned() => FONT_H1,
-                        "##".to_owned() => FONT_H2,
-                        "###".to_owned() => FONT_H3,
-                        "####".to_owned() => FONT_H4,
-                        "#####".to_owned() => FONT_H5,
-                    };
+            "#".to_owned() => FONT_H1,
+            "##".to_owned() => FONT_H2,
+            "###".to_owned() => FONT_H3,
+            "####".to_owned() => FONT_H4,
+            "#####".to_owned() => FONT_H5,
+        };
         match self {
-            MarxtResource::Dir(_) => {
-                Parsed::new(line, FONT_NORMAL)
-            }
+            MarxtResource::Dir(_) => Parsed::new(line, FONT_NORMAL, 0),
             MarxtResource::File(_) => {
                 let first_word = line.split_whitespace().nth(0);
                 return match first_word {
                     None => {
-                        return Parsed::new(line, FONT_NORMAL);
+                        return Parsed::new(line, FONT_NORMAL, 0);
                     }
                     Some(first_word) => {
                         let matched_size = rules.get(first_word);
                         match matched_size {
-                            None => {
-                                Parsed::new(line, FONT_NORMAL)
-                            }
+                            None => Parsed::new(line, FONT_NORMAL, 10),
                             Some(got_size) => {
-                                Parsed::new(
-                                    line.replace(first_word, ""),
-                                    *got_size,
-                                )
+                                Parsed::new(line.replace(first_word, ""), *got_size, 0)
                             }
                         }
                     }
@@ -187,28 +178,29 @@ impl MarxtResource {
 
 /// Parsed line and font size
 struct Parsed {
-
     /// Parsed line after remove keyword for markup.
     line: String,
 
     /// Font size
     size: u16,
+
+    /// Left space
+    left_space: u16,
 }
 
 impl Parsed {
-
     /// * `line` - Parsed line after remove keyword for markup.
     /// * `size` - Font size
-    fn new(line: String, size: u16) -> Parsed {
+    fn new(line: String, size: u16, left_space: u16) -> Parsed {
         Parsed {
             line,
             size,
+            left_space,
         }
     }
 }
 
 impl MarxtMain {
-
     /// Log file path of this application.
     fn log_path(&self) -> &str {
         "/tmp/marxt.log"
@@ -219,7 +211,11 @@ impl MarxtMain {
     /// * `log_path` - Log file path
     /// * `message` - Message to write
     fn write_to_log(&self, log_path: &str, message: String) {
-        let file = OpenOptions::new().create(true).append(true).open(log_path).unwrap();
+        let file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(log_path)
+            .unwrap();
         let mut f = BufWriter::new(file);
         f.write(message.as_bytes()).unwrap();
     }
@@ -279,14 +275,24 @@ impl Application for MarxtMain {
             "Input pathname...",
             &(self.pathname),
             Message::ChangePathname,
-        ).padding(PADDING_NORMAL).font(FONT_IPA_G);
+        )
+        .padding(PADDING_NORMAL)
+        .font(FONT_IPA_G);
         let mut col = Column::new().padding(PADDING_NORMAL).push(text_input);
         for text in self.list_text.iter() {
             match &self.marxt_resource {
                 None => {}
                 Some(resource) => {
                     let parsed = resource.parse(text.to_string());
-                    col = col.push(Text::new(parsed.line).size(parsed.size).font(FONT_IPA_G));
+                    //                    let mut row = Row::new<Text>();
+                    //                    col = col.push(Text::new(parsed.line).size(parsed.size).font(FONT_IPA_G));
+                    col = col.push(
+                        Row::new()
+                            .push(Text::new("").size(parsed.size).font(FONT_IPA_G))
+                            .push(Text::new(parsed.line).size(parsed.size).font(FONT_IPA_G))
+                            .padding(5)
+                            .spacing(parsed.left_space),
+                    );
                 }
             }
         }
